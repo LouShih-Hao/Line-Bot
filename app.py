@@ -1,51 +1,58 @@
-import os
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
-import openai
 
-# 設置 Line 機器人的 Channel Access Token 和 Channel Secret
-LINE_CHANNEL_ACCESS_TOKEN = "YOUR_CHANNEL_ACCESS_TOKEN"
-LINE_CHANNEL_SECRET = "YOUR_CHANNEL_SECRET"
+from linebot.v3 import (
+    WebhookHandler
+)
+from linebot.v3.exceptions import (
+    InvalidSignatureError
+)
+from linebot.v3.messaging import (
+    Configuration,
+    ApiClient,
+    MessagingApi,
+    ReplyMessageRequest,
+    TextMessage
+)
+from linebot.v3.webhooks import (
+    MessageEvent,
+    TextMessageContent
+)
 
-# 設置 OpenAI API 密鑰
-OPENAI_API_KEY = "YOUR_OPENAI_API_KEY"
-
-# 初始化 Line 相關物件
 app = Flask(__name__)
-line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
-handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-# 初始化 OpenAI
-openai.api_key = OPENAI_API_KEY
+configuration = Configuration(access_token='YOUR_CHANNEL_ACCESS_TOKEN')
+handler = WebhookHandler('YOUR_CHANNEL_SECRET')
 
-# 定義 Line Webhook 路由
+
 @app.route("/callback", methods=['POST'])
 def callback():
+    # get X-Line-Signature header value
     signature = request.headers['X-Line-Signature']
+
+    # get request body as text
     body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
+
+    # handle webhook body
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
+        app.logger.info("Invalid signature. Please check your channel access token/channel secret.")
         abort(400)
+
     return 'OK'
 
-# 定義 Line 訊息事件處理函式
-@handler.add(MessageEvent, message=TextMessage)
+
+@handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
-    user_input = event.message.text
-    # 使用 OpenAI 聊天模型進行回覆
-    response = openai.Completion.create(
-        engine="davinci", prompt=user_input, max_tokens=50
-    )
-    reply = response.choices[0].text.strip()
-    # 回覆用戶訊息
-    line_bot_api.reply_message(
-        event.reply_token,
-        TextSendMessage(text=reply)
-    )
+    with ApiClient(configuration) as api_client:
+        line_bot_api = MessagingApi(api_client)
+        line_bot_api.reply_message_with_http_info(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=event.message.text)]
+            )
+        )
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run()
