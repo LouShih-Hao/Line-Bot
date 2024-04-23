@@ -18,12 +18,24 @@ handler = WebhookHandler(channel_secret)
 
 
 def GPT_response(text):
-    # 接收回應
-    response = openai.Completion.create(model="gpt-3.5-turbo-instruct", prompt=text, temperature=0.5, max_tokens=500)
-    print(response)
-    # 重組回應
-    answer = response['choices'][0]['text'].replace('。', '')
-    return answer
+    try:
+        # Log the request before sending
+        print("Sending request to OpenAI API with prompt:", text)
+        # 接收回應
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=text,
+            max_tokens=500,
+            temperature=0.5
+        )
+        # Log the response
+        print("Received response from OpenAI API:", response)
+        # 重組回應
+        answer = response.choices[0].text.strip()
+        return answer
+    except Exception as e:
+        print("Error occurred while requesting from OpenAI API:", e)
+        return "抱歉，無法取得回應。請稍後再試。"
 
 
 @app.route("/callback", methods=['POST'])
