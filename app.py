@@ -17,6 +17,9 @@ configuration = Configuration(access_token=channel_access_token)
 handler = WebhookHandler(channel_secret)
 
 
+quota_exceeded_error = "You exceeded your current quota, please check your plan and billing details."
+
+
 def GPT_response(text):
     try:
         # Log the request before sending
@@ -34,8 +37,13 @@ def GPT_response(text):
         answer = response.choices[0].text.strip()
         return answer
     except Exception as e:
-        print("Error occurred while requesting from OpenAI API:", e)
-        return "抱歉，無法取得回應。請稍後再試。"
+        # 如果出現超出quota錯誤，則跳出相關訊息
+        if str(e) == quota_exceeded_error:
+            return "抱歉，您的請求已超出quota。請稍後再試，謝謝。"
+        else:
+            # 其他類型的錯誤，跳出一般性訊息
+            print("Error occurred while requesting from OpenAI API:", e)
+            return "抱歉，無法取得回應。請稍後再試。"
 
 
 @app.route("/callback", methods=['POST'])
