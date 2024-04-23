@@ -23,7 +23,7 @@ def GPT_response(text):
         print("Sending request to OpenAI API with prompt:", text)
         # 接收回應
         response = openai.Completion.create(
-            engine="text-davinci-003",
+            engine="text-davinci",
             prompt=text,
             max_tokens=500,
             temperature=0.5
