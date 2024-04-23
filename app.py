@@ -4,14 +4,26 @@ from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 import os
+import openai
+
 
 app = Flask(__name__)
 
-channel_access_token=os.environ['channel_access_token']
-channel_secret=os.environ['channel_secret']
+channel_access_token = os.environ['channel_access_token']
+channel_secret = os.environ['channel_secret']
+openai.api_key = os.environ['openai_api_key']
 
 configuration = Configuration(access_token=channel_access_token)
 handler = WebhookHandler(channel_secret)
+
+
+def GPT_response(text):
+    # 接收回應
+    response = openai.Completion.create(model="gpt-3.5-turbo-instruct", prompt=text, temperature=0.5, max_tokens=500)
+    print(response)
+    # 重組回應
+    answer = response['choices'][0]['text'].replace('。', '')
+    return answer
 
 
 @app.route("/callback", methods=['POST'])
@@ -36,9 +48,11 @@ def callback():
 @handler.add(MessageEvent, message=TextMessageContent)
 def handle_message(event):
     with ApiClient(configuration) as api_client:
+        msg = event.message.text
+        gpt_answer = GPT_response(msg)
         line_bot_api = MessagingApi(api_client)
         line_bot_api.reply_message_with_http_info(
-            ReplyMessageRequest(reply_token=event.reply_token, messages=[TextMessage(text=event.message.text)]))
+            ReplyMessageRequest(reply_token=event.reply_token, messages=[TextMessage(text=gpt_answer)]))
 
 
 if __name__ == "__main__":
