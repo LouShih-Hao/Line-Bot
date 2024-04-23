@@ -3,8 +3,8 @@ from linebot.v3 import WebhookHandler
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import Configuration, ApiClient, MessagingApi, ReplyMessageRequest, TextMessage
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
-import os
 import openai
+import os
 
 
 app = Flask(__name__)
@@ -26,7 +26,7 @@ def GPT_response(text):
         print("Sending request to OpenAI API with prompt:", text)
         # 接收回應
         response = openai.Completion.create(
-            model="gpt-3.5",
+            model="gpt-3.5-turbo-0125",
             prompt=text,
             max_tokens=500,
             temperature=0.5
